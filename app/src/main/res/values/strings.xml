@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Invest</string>
+    <string name="welcome">Welcome to</string>
+    <string name="onboarding">Onboarding</string>
+    <string name="save_gold">Save in Gold</string>
+    <string name="home_page">Home Page</string>
+</resources>
