@@ -1,11 +1,16 @@
 package com.example.invest.presentation.screens
 
 import android.app.Activity
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -78,7 +83,7 @@ fun OnboardingScreen(
     val coroutineScope = rememberCoroutineScope()
     val screenState by viewModel.screenState.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()
-    var index by rememberSaveable { mutableIntStateOf(0) }
+    var currentIndex by rememberSaveable { mutableIntStateOf(0) }
     var enableClick by rememberSaveable { mutableStateOf(false) }
     val backGroundColor = remember { androidx.compose.animation.Animatable(AppColors.default.background) }
 
@@ -87,28 +92,30 @@ fun OnboardingScreen(
         viewModel.handleEvent(OnboardingEvents.FetchOnboardingData)
     }
 
-    LaunchedEffect(index) {
+    LaunchedEffect(currentIndex) {
         backGroundColor.animateTo(
-            targetValue = screenState.onboardingData.cards.getOrNull(index)?.colorScheme?.background ?: AppColors.default.background,
+            targetValue = screenState.onboardingData.cards.getOrNull(currentIndex)?.colorScheme?.background ?: AppColors.default.background,
             animationSpec = tween(durationMillis = 500, easing = EaseInOut)
         )
     }
 
     LaunchedEffect(Unit) {
         while (!enableClick) {
-            if (index == 0) {
+            if (currentIndex == 0) {
                 delay(1000)
             }
-            viewModel.handleEvent(OnboardingEvents.UpdateCardList(index = index))
-            delay(5000)
+            viewModel.handleEvent(OnboardingEvents.UpdateCardList(index = currentIndex))
+            delay(screenState.onboardingData.let {
+                it.bottomToCenterTranslationInterval.plus(it.collapsedCardTiltTime).plus(it.expandedCardTime)
+            })
             viewModel.handleEvent(OnboardingEvents.UpdateCardCollapseState(
-                index = index,
+                index = currentIndex,
                 isCollapsed = true
             ))
             viewModel.handleEvent(OnboardingEvents.SetScreenHeight(screenState.screenHeightForAnimation - 86.dp))
-            delay(500)
-            if (index < screenState.onboardingData.cards.size - 1) {
-                index += 1
+            delay(screenState.onboardingData.collapseExpandIntroInterval)
+            if (currentIndex < screenState.onboardingData.cards.size - 1) {
+                currentIndex += 1
             } else {
                 enableClick = true
                 break
@@ -156,6 +163,8 @@ fun OnboardingScreen(
 
             itemsIndexed(screenState.cardList, key = { index, item -> "$index-${item.collapsedText}"}) { index, item ->
                 CardsComposable(
+                    bottomToCenterTranslation = screenState.onboardingData.bottomToCenterTranslationInterval.toInt(),
+                    collapseCardTiltDuration = screenState.onboardingData.collapsedCardTiltTime.toInt(),
                     lottieUrl = screenState.onboardingData.downLottie,
                     screenHeight = screenState.screenHeightForAnimation,
                     showAnimations = !enableClick,
@@ -173,6 +182,7 @@ fun OnboardingScreen(
                                         } else true
                                     ))
                             }
+                            currentIndex = index
                             coroutineScope.launch {
                                 backGroundColor.animateTo(
                                     targetValue = item.colorScheme.background,
@@ -189,7 +199,12 @@ fun OnboardingScreen(
                 )
             }
         }
-        if (enableClick) {
+        AnimatedVisibility(
+            visible = enableClick,
+            modifier = Modifier.fillMaxSize(),
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
             FloatingCta(
                 item = screenState.onboardingData.saveButtonCta,
                 onClick = {
@@ -207,7 +222,7 @@ fun FloatingCta(
     onClick: () -> Unit
 ) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(bottom = 24.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         Box(
@@ -243,6 +258,8 @@ fun FloatingCta(
 
 @Composable
 fun CardsComposable(
+    bottomToCenterTranslation: Int,
+    collapseCardTiltDuration: Int,
     lottieUrl: String,
     screenHeight: Dp,
     showAnimations: Boolean,
@@ -264,12 +281,12 @@ fun CardsComposable(
             if (!isCollapsed) {
                 cardTranslationYOffset.animateTo(
                     targetValue = if (index == 0) screenHeight.value * 0.15f else 5f,
-                    animationSpec = tween(durationMillis = 1500)
+                    animationSpec = tween(durationMillis = bottomToCenterTranslation)
                 )
             } else {
                 cardTranslationYOffset.animateTo(
                     targetValue = 0f,
-                    animationSpec = tween(durationMillis = 1500)
+                    animationSpec = tween(durationMillis = bottomToCenterTranslation)
                 )
             }
 
@@ -277,7 +294,7 @@ fun CardsComposable(
                 cardExpandedTiltState.animateTo(
                     targetValue = 0f,
                     animationSpec = tween (
-                        durationMillis = 1000,
+                        durationMillis = collapseCardTiltDuration,
                         easing = EaseInOut
                     )
                 )
@@ -285,7 +302,7 @@ fun CardsComposable(
                 cardCollapsedTiltState.animateTo(
                     targetValue = 0f,
                     animationSpec = tween (
-                        durationMillis = 500,
+                        durationMillis = collapseCardTiltDuration,
                         easing = EaseInOut
                     )
                 )

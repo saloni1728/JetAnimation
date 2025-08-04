@@ -11,11 +11,9 @@ object CommonUtils {
             try {
                 Color(this.toColorInt())
             } catch (e: IllegalArgumentException) {
-                System.out.println("saloni error ${e.message}")
                 default
             }
         } else {
-            System.out.println("saloni error Unknown color format: $this")
             default
         }
     }

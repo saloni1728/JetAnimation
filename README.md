@@ -27,5 +27,5 @@
 - Minimum SDK: 24, Target SDK: 36.
 
 ## Link to App Demo Clip
-https://drive.google.com/file/d/1psGbD2nTcYhGnT50kcy8NzxgmrAKtct1/view?usp=sharing
+https://drive.google.com/file/d/1iT_Lb4KGv5Q7dUByJgEXA71o0Gw31oBr/view?usp=drive_link
 ---

@@ -21,7 +21,6 @@ class RemoteSource @Inject constructor(
     ): Result<Failure, ResponseDto> {
         try {
             val response: Response<IDto> = apiCall(request = request)
-            System.out.println("saloni successfull")
             if (response.isSuccessful) {
                 val responseBody = response.body()?.let { json.encodeToString(IDto::class.serializer(), it) }?.toDto(dto) ?: return Result.Error(Failure.ApiError(NULL_RESPONSE))
                 return Result.Success(responseBody)
@@ -29,7 +28,6 @@ class RemoteSource @Inject constructor(
                 return Result.Error(Failure.ApiError(response.errorBody()?.string() ?: UNKNOWN_ERROR))
             }
         } catch (e: Exception) {
-            System.out.println("saloni failure ${e.message}")
             return Result.Error(Failure.NetworkConnectionError(e.message ?: UNKNOWN_ERROR))
         }
     }
